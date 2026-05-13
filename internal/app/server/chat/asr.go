@@ -714,9 +714,6 @@ func (a *ASRManager) StartAsrRecognitionLoop(
 			}
 			text := result.Text
 
-			//统计asr耗时
-			log.Debugf("处理asr结果: %s, 耗时: %d ms", text, state.GetAsrDuration())
-
 			if result.RetryReason != "" {
 				if state.AudioIdleTimeoutPending() {
 					closeAudioIdleTimeout(result.RetryReason)
@@ -775,6 +772,13 @@ func (a *ASRManager) StartAsrRecognitionLoop(
 			}
 
 			if text != "" {
+				asrFinalTs := time.Now().UnixMilli()
+				state.MarkAsrFinalTextAt(asrFinalTs)
+				if a.session != nil {
+					a.session.TraceAsrFinalText(ctx, asrFinalTs)
+				}
+				log.Debugf("处理asr结果: %s, 耗时: %d ms", text, state.GetAsrDuration())
+
 				state.ClearAudioIdleTimeoutPending()
 				// 识别成功后重置空结果计数
 				emptyResultWindowStart = time.Now()
@@ -810,10 +814,6 @@ func (a *ASRManager) StartAsrRecognitionLoop(
 				speakerInterrupted := false
 				if a.session != nil {
 					speakerInterrupted = a.session.ConsumeTurnSpeakerInterrupted()
-				}
-				state.MarkAsrFinalText()
-				if a.session != nil {
-					a.session.TraceAsrFinalText(ctx, time.Now().UnixMilli())
 				}
 
 				if a.session != nil {
