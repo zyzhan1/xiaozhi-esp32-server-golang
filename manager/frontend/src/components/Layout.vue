@@ -6,7 +6,7 @@
           <img class="brand-mark" :src="appLogo" alt="小智管理系统" />
           <div class="brand-copy">
             <p class="brand-eyebrow">Control Center</p>
-            <h3>小智管理系统</h3>
+            <h3>佐标设备管理系统</h3>
             <p>{{ authStore.isAdmin ? 'AI 服务与设备管理台' : '设备与智能体工作台' }}</p>
           </div>
         </div>
@@ -154,7 +154,7 @@ import { useAuthStore } from '../stores/auth'
 import { isMobile } from '../utils/device'
 import AppHeader from './AppHeader.vue'
 import MobileLayout from './MobileLayout.vue'
-import appLogo from '@/assets/brand/app-logo.webp'
+import appLogo from '@/assets/brand/logo.png'
 import {
   House,
   Setting,

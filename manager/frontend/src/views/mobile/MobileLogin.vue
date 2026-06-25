@@ -167,7 +167,7 @@ import { useAuthStore } from '../../stores/auth'
 import api from '../../utils/api'
 import { getPostLoginRedirectPath } from '../../utils/authRedirect'
 import { checkNeedsSetup } from '../../utils/setupStatus'
-import appLogo from '@/assets/brand/app-logo.webp'
+import appLogo from '@/assets/brand/logo.png'
 
 const router = useRouter()
 const authStore = useAuthStore()
