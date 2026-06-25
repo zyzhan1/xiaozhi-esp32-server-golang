@@ -3,7 +3,7 @@
     <aside class="sidebar-shell">
       <div class="sidebar-card apple-surface">
         <div class="brand-panel">
-          <img class="brand-mark" :src="appLogo" alt="小智管理系统" />
+          <img class="brand-mark" :src="appLogo" alt="Zuto-Ai管理系统" />
           <div class="brand-copy">
             <p class="brand-eyebrow">Control Center</p>
             <h3>佐标设备管理系统</h3>

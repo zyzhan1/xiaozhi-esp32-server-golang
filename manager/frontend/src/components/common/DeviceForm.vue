@@ -52,7 +52,7 @@
     <el-form-item label="设备昵称" prop="nick_name">
       <el-input
         v-model="form.nick_name"
-        placeholder="例如：客厅音箱、办公室小智"
+        placeholder="例如：客厅音箱、办公室Zuto-Ai"
         maxlength="50"
         show-word-limit
         clearable
