@@ -5,21 +5,12 @@
         <div class="login-brand">
           <img class="login-brand-logo" :src="appLogo" alt="zuto-Ai" />
           <div>
-            <strong>zuto-Ai</strong>
+            <strong>Zuto-AI Cloud</strong>
             <span>AI 服务与设备管理平台</span>
           </div>
         </div>
-        <p class="login-eyebrow">zuto Ai CONTROL CENTER</p>
-        <p>
-          统一管理智能体、声纹、知识库与服务接入，让设备、模型和语音能力在同一个工作台里协同运行。
-        </p>
-        <div class="login-meta">
-          <span class="apple-chip is-primary">智能体编排</span>
-          <span class="apple-chip">设备接入</span>
-          <span class="apple-chip">声纹与知识库</span>
-          <span class="apple-chip">MCP / OpenClaw</span>
-          <span class="apple-chip">MCP 远程调用</span>
-          <span class="apple-chip">主动语音下发</span>
+        <div style="position: relative;left: -30%;">
+          <img src="../assets/brand/login_bg.png" alt="" style="width: 160%">
         </div>
       </section>
 
@@ -167,7 +158,7 @@ import { useAuthStore } from '../stores/auth'
 import api from '../utils/api'
 import { getPostLoginRedirectPath } from '../utils/authRedirect'
 import { checkNeedsSetup } from '../utils/setupStatus'
-import appLogo from '@/assets/brand/logo.png'
+import appLogo from '@/assets/brand/zutoAicloud.png'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -404,6 +395,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   padding: 24px;
+  background: linear-gradient(5.46deg, rgba(197, 225, 248, 1) 0%, rgba(222, 237, 250, 1) 54.72%, rgba(246, 249, 252, 1) 85.23%, rgba(246, 249, 252, 1) 100%);
 }
 
 .login-shell {
@@ -421,20 +413,12 @@ onMounted(async () => {
 .login-brand {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 24px;
-  padding: 10px 14px 10px 10px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.74);
-  border: 1px solid rgba(255, 255, 255, 0.86);
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  gap: 24px;
+  margin-top: 84px;margin-left: 100px;
 }
 
 .login-brand-logo {
-  width: 58px;
-  height: 58px;
-  object-fit: cover;
-  box-shadow: 0 12px 24px rgba(0, 122, 255, 0.18);
+  width: 80px;
 }
 
 .login-brand strong,
@@ -452,73 +436,6 @@ onMounted(async () => {
   margin-top: 3px;
   color: var(--apple-text-secondary);
   font-size: 13px;
-}
-
-.login-eyebrow,
-.card-eyebrow {
-  margin: 0 0 8px;
-  color: var(--apple-primary);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.login-hero h1 {
-  margin: 0;
-  font-size: 48px;
-  line-height: 1.02;
-  letter-spacing: -0.05em;
-}
-
-.login-hero p {
-  margin: 16px 0 0;
-  max-width: 520px;
-  color: var(--apple-text-secondary);
-  line-height: 1.8;
-}
-
-.login-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 22px;
-}
-
-.login-card {
-  border-radius: 30px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: var(--apple-shadow-lg);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-header h2 {
-  margin: 0;
-  color: var(--apple-text);
-  font-size: 28px;
-  letter-spacing: -0.03em;
-}
-
-.login-tabs {
-  margin-top: 8px;
-}
-
-.captcha-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  border: 1px solid var(--apple-border);
-  background: rgba(247, 248, 250, 0.92);
 }
 
 .captcha-copy {

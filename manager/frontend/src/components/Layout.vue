@@ -3,11 +3,10 @@
     <aside class="sidebar-shell">
       <div class="sidebar-card apple-surface">
         <div class="brand-panel">
-          <img class="brand-mark" :src="appLogo" alt="Zuto-Ai管理系统" />
+          <img class="brand-mark" :src="appLogo" alt="Zuto-AI Cloud" />
           <div class="brand-copy">
-            <p class="brand-eyebrow">Control Center</p>
-            <h3>佐标设备管理系统</h3>
-            <p>{{ authStore.isAdmin ? 'AI 服务与设备管理台' : '设备与智能体工作台' }}</p>
+            <h3>Zuto-AI Cloud</h3>
+            <p>AI 服务与设备管理台</p>
           </div>
         </div>
 
@@ -154,7 +153,7 @@ import { useAuthStore } from '../stores/auth'
 import { isMobile } from '../utils/device'
 import AppHeader from './AppHeader.vue'
 import MobileLayout from './MobileLayout.vue'
-import appLogo from '@/assets/brand/logo.png'
+import appLogo from '@/assets/brand/zutoAicloud.png'
 import {
   House,
   Setting,
@@ -238,14 +237,10 @@ const handleCommand = async (command) => {
 }
 
 .brand-mark {
-  width: 38px;
-  height: 38px;
+  width: 40px;
   border-radius: 14px;
   display: block;
   object-fit: cover;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.36), 0 12px 22px rgba(0, 122, 255, 0.24);
-  flex: none;
 }
 
 .brand-copy h3 {
