@@ -6,7 +6,7 @@
           <img class="login-brand-logo" :src="appLogo" alt="zuto-Ai" />
           <div>
             <strong>Zuto-AI Cloud</strong>
-            <span>AI 服务与设备管理平台</span>
+            <span>服务与设备管理平台</span>
           </div>
         </div>
         <div style="position: relative;left: -30%;">

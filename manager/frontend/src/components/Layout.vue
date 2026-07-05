@@ -6,7 +6,7 @@
           <img class="brand-mark" :src="appLogo" alt="Zuto-AI Cloud" />
           <div class="brand-copy">
             <h3>Zuto-AI Cloud</h3>
-            <p>AI 服务与设备管理台</p>
+            <p>服务与设备管理台</p>
           </div>
         </div>
 

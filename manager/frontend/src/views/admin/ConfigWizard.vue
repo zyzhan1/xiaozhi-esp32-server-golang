@@ -1,18 +1,78 @@
 <template>
   <div class="config-wizard">
     <el-steps :active="currentStep" finish-status="success" align-center class="wizard-steps">
-      <el-step title="OTA" description="服务地址" />
-      <el-step title="VAD" description="语音活动检测" />
-      <el-step title="ASR" description="语音识别" />
-      <el-step title="LLM" description="大语言模型" />
-      <el-step title="TTS" description="语音合成" />
+      <el-step title="OTA">
+        <template #description>
+          <el-popover
+              content="设备固件 / 程序远程升级"
+              placement="bottom" :width="200" :trigger="hover"
+          >
+            <template #reference>
+              <span>服务地址 <el-icon><QuestionFilled /></el-icon></span>
+            </template>
+          </el-popover>
+        </template>
+      </el-step>
+      <el-step title="VAD" description="语音活动检测" >
+        <template #description>
+          <el-popover
+              content="判断「有没有人在说话」，过滤无效噪音"
+              placement="bottom" :width="300" :trigger="hover"
+          >
+            <template #reference>
+              <span>语音活动检测 <el-icon><QuestionFilled /></el-icon></span>
+            </template>
+          </el-popover>
+        </template>
+      </el-step>
+      <el-step title="ASR" description="语音识别" >
+        <template #description>
+          <el-popover
+              content="把麦克风上传的人声音频 → 转换成文本文字"
+              placement="bottom" :width="310" :trigger="hover"
+          >
+            <template #reference>
+              <span>语音识别 <el-icon><QuestionFilled /></el-icon></span>
+            </template>
+          </el-popover>
+        </template>
+      </el-step>
+      <el-step title="LLM" description="大语言模型" >
+        <template #description>
+          <el-popover
+              content="理解文字语义，生成通顺、符合逻辑的回答文本"
+              placement="bottom" :width="200" :trigger="hover"
+          >
+            <template #reference>
+              <span>大语言模型 <el-icon><QuestionFilled /></el-icon></span>
+            </template>
+          </el-popover>
+        </template>
+      </el-step>
+      <el-step title="TTS" description="语音合成" >
+        <template #description>
+          <el-popover
+              content="把 LLM 生成的回答文字 → 转换成自然人声音频"
+              placement="bottom" :width="340" :trigger="hover"
+          >
+            <template #reference>
+              <span>语音合成 <el-icon><QuestionFilled /></el-icon></span>
+            </template>
+          </el-popover>
+        </template>
+      </el-step>
     </el-steps>
 
     <el-card class="step-card" shadow="hover">
       <!-- Step 1: OTA -->
       <template v-if="currentStep === 0">
-        <div class="step-title">OTA 配置</div>
+
+        <div class="step-title">OTA 设备固件远程更新 配置</div>
+<!--
         <p class="step-hint">填写本服务对外访问的域名或 IP，将自动生成 OTA 地址和 WebSocket 地址（最后一步会展示）。</p>
+-->
+        <p style="margin-bottom: 10px;"><el-alert type="warning">设备上电后会主动访问你OTA地址，拉取版本文件，对比本地固件版本。</el-alert>
+        </p>
         <el-form :model="otaForm" label-width="140px" class="wizard-form">
           <el-form-item label="域名或 IP" prop="host">
             <el-input v-model="otaForm.host" placeholder="如 192.168.1.100 或 manager.example.com" clearable />
@@ -48,25 +108,29 @@
 
       <!-- Step 2: VAD -->
       <template v-if="currentStep === 1">
-        <div class="step-title">VAD 配置</div>
-        <VADConfigForm ref="vadFormRef" :model="vadForm" :rules="vadFormRules" class="wizard-form" />
+        <div class="step-title">VAD 语音活动检测 配置</div>
+        <p style="margin-bottom: 10px;"><el-alert type="warning">设备麦克风持续采集音频流，本地 / 服务端 VAD 模块实时分析。</el-alert></p>
+          <VADConfigForm ref="vadFormRef" :model="vadForm" :rules="vadFormRules" class="wizard-form" />
       </template>
 
       <!-- Step 3: ASR -->
       <template v-if="currentStep === 2">
-        <div class="step-title">ASR 配置</div>
+        <div class="step-title"> ASR 语音识别（语音转文字） 配置</div>
+        <p style="margin-bottom: 10px;"><el-alert type="warning">边说话边出文字（流式 ASR），不用等用户说完就能提前识别,输出结构化文字。</el-alert></p>
         <ASRConfigForm ref="asrFormRef" :model="asrForm" :rules="asrFormRules" class="wizard-form" />
       </template>
 
       <!-- Step 4: LLM -->
       <template v-if="currentStep === 3">
         <div class="step-title">LLM 配置</div>
+        <p style="margin-bottom: 10px;"><el-alert type="warning">读懂用户意图，生成回复文本。</el-alert></p>
         <LLMConfigForm ref="llmFormRef" :model="llmForm" :rules="llmFormRules" class="wizard-form" />
       </template>
 
       <!-- Step 5: TTS -->
       <template v-if="currentStep === 4">
         <div class="step-title">TTS 配置</div>
+        <p style="margin-bottom: 10px;"><el-alert type="warning">接收 LLM 输出的文字，生成采样率匹配硬件喇叭的语音音频。</el-alert></p>
         <TTSConfigForm
           ref="ttsFormRef"
           :model="ttsForm"
@@ -156,7 +220,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { CopyDocument } from '@element-plus/icons-vue'
+import {CopyDocument, QuestionFilled} from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/utils/api'
 import { testWithData, parseJsonData } from '@/utils/configTest'
