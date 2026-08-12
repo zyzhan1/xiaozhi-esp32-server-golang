@@ -74,6 +74,13 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		api.GET("/setup/status", setupController.CheckSetupStatus)
 		api.POST("/setup/initialize", setupController.InitializeDatabase)
 
+		// 管理员模拟登录（需 JWT + 管理员权限双重认证，路径保持 /api/userlogin）
+		apiImpersonate := api.Group("")
+		apiImpersonate.Use(middleware.JWTAuth(), middleware.AdminAuth())
+		{
+			apiImpersonate.POST("/userlogin", authController.UserLogin)
+		}
+
 		// 内部服务接口（服务间 Token 认证）
 		internal := api.Group("")
 		internal.Use(middleware.InternalServiceAuth(internalAuthToken))

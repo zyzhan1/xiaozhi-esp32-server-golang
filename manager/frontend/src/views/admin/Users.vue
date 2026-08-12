@@ -331,14 +331,14 @@ const openEditDialog = (user) => {
   userDialogVisible.value = true
 }
 
-const openViewDialog = async (user) => {
+const openViewDialog = (user) => {
   if (user.role === 'admin'){
     ElMessage.info("管理员用户不需要查看")
     return
   }
-  viewUserData.value = { id: user.id, username: user.username }
-  isView.value = true
-  await loadUserLoginRecords(user.username)
+  // 跳转到 myUser.html 页面，携带用户信息作为 URL 参数
+  const url = `/myUser.html?id=${user.id}&username=${encodeURIComponent(user.username)}`
+  window.open(url, '_blank')
 }
 
 // 加载用户登录记录

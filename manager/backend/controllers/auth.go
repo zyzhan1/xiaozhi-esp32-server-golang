@@ -206,6 +206,66 @@ func (ac *AuthController) Register(c *gin.Context) {
 	})
 }
 
+// UserLogin 管理员模拟普通用户登录（切换用户）
+// 路径：POST /api/userlogin（需 JWT + 管理员权限双重认证）
+// 请求参数：JSON { "username": "目标用户账号" }
+// 成功响应：JWT token 及目标用户基本信息（id, username, email, role）
+func (ac *AuthController) UserLogin(c *gin.Context) {
+	// 1. 权限校验：从 Gin Context 中获取当前请求者角色，必须为 admin
+	operatorRole, _ := c.Get("role")
+	operatorUsername, _ := c.Get("username")
+	if operatorRole != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "仅管理员可执行模拟登录操作"})
+		return
+	}
+
+	// 2. 参数绑定：解析 JSON 请求中的 username
+	var req struct {
+		Username string `json:"username" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请提供目标用户账号(username)"})
+		return
+	}
+
+	// 3. 目标用户查询：根据传入的账号查询目标用户
+	var targetUser models.User
+	if err := ac.DB.Where("username = ?", req.Username).First(&targetUser).Error; err != nil {
+		// 用户不存在，返回 HTTP 200 并提示
+		c.JSON(http.StatusOK, gin.H{"error": "目标用户不存在"})
+		return
+	}
+
+	// 4. 安全限制：禁止模拟 role == "admin" 的用户，防止权限混淆
+	if targetUser.Role == "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "禁止模拟管理员账号"})
+		return
+	}
+
+	// 5. Token 生成：为目标普通用户生成 JWT token
+	token, err := middleware.GenerateToken(targetUser.ID, targetUser.Username, targetUser.Role)
+	if err != nil {
+		log.Printf("[UserLogin] 生成token失败: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成token失败"})
+		return
+	}
+
+	// 6. 审计日志：记录管理员模拟登录的操作日志（操作者账号、目标账号、客户端 IP）
+	log.Printf("[UserLogin] 审计: 管理员[%s]模拟登录用户[%s], 客户端IP: %s",
+		operatorUsername, targetUser.Username, c.ClientIP())
+
+	// 7. 响应数据：返回 JWT token 及目标用户基本信息
+	c.JSON(http.StatusOK, gin.H{
+		"token": token,
+		"user": gin.H{
+			"id":       targetUser.ID,
+			"username": targetUser.Username,
+			"email":    targetUser.Email,
+			"role":     targetUser.Role,
+		},
+	})
+}
+
 // 获取当前用户信息
 func (ac *AuthController) GetProfile(c *gin.Context) {
 	log.Printf("[GetProfile] 开始处理获取用户信息请求, 客户端IP: %s", c.ClientIP())
