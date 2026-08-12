@@ -177,8 +177,32 @@
       </template>
     </el-dialog>
     <!-- 查看用户的菜单情况    -->
-    <el-dialog v-model="isView" title="用户菜单情况" width="800px">
-      <div class="">用户菜单</div>
+    <el-dialog v-model="isView" title="用户登录记录" width="900px" @close="resetViewDialog">
+      <div v-loading="viewLoading">
+        <el-descriptions v-if="viewUserData.username" :column="2" border style="margin-bottom: 16px">
+          <el-descriptions-item label="用户名">{{ viewUserData.username }}</el-descriptions-item>
+          <el-descriptions-item label="用户ID">{{ viewUserData.id }}</el-descriptions-item>
+        </el-descriptions>
+
+        <el-table v-if="viewLoginRecords.length > 0" :data="viewLoginRecords" style="width: 100%">
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column prop="login_time" label="登录时间" width="180">
+            <template #default="{ row }">{{ formatDateTime(row.login_time) }}</template>
+          </el-table-column>
+          <el-table-column prop="ip_address" label="IP地址" width="150" />
+          <el-table-column prop="user_agent" label="User Agent" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'success' ? 'success' : 'danger'">
+                {{ row.status === 'success' ? '成功' : '失败' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="remark" label="备注" min-width="150" show-overflow-tooltip />
+        </el-table>
+
+        <el-empty v-if="!viewLoading && viewLoginRecords.length === 0 && viewUserData.username" description="暂无登录记录" />
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -204,6 +228,9 @@ const quotaUser = ref({})
 const quotaOriginalMaxMap = ref({})
 const isEditMode = ref(false)
 const isView = ref(false)
+const viewLoading = ref(false)
+const viewUserData = ref({})
+const viewLoginRecords = ref([])
 const currentUser = ref({})
 const searchKeyword = ref('')
 
@@ -304,12 +331,43 @@ const openEditDialog = (user) => {
   userDialogVisible.value = true
 }
 
-const openViewDialog = (user) => {
+const openViewDialog = async (user) => {
   if (user.role === 'admin'){
     ElMessage.info("管理员用户不需要查看")
     return
   }
+  viewUserData.value = { id: user.id, username: user.username }
   isView.value = true
+  await loadUserLoginRecords(user.username)
+}
+
+// 加载用户登录记录
+const loadUserLoginRecords = async (username) => {
+  viewLoading.value = true
+  try {
+    const response = await api.post('/userlogin', { username })
+    const data = response.data?.data
+    if (Array.isArray(data)) {
+      viewLoginRecords.value = data
+    } else if (data && Array.isArray(data.records)) {
+      viewLoginRecords.value = data.records
+    } else if (data && Array.isArray(data.list)) {
+      viewLoginRecords.value = data.list
+    } else {
+      viewLoginRecords.value = []
+    }
+  } catch (error) {
+    ElMessage.error('加载用户登录记录失败')
+    viewLoginRecords.value = []
+  } finally {
+    viewLoading.value = false
+  }
+}
+
+// 重置查看弹窗数据
+const resetViewDialog = () => {
+  viewUserData.value = {}
+  viewLoginRecords.value = []
 }
 
 // 重置用户表单
