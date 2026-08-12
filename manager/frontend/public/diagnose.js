@@ -14,7 +14,7 @@ console.log('   - User:', localStorage.getItem('user'))
 
 // 检查网络连接
 console.log('3. 检查后端连接:')
-fetch('http://localhost:8080/api/profile')
+/*fetch('http://localhost:8080/api/profile')
   .then(response => {
     console.log('   - 后端响应状态:', response.status)
     if (response.status === 401) {
@@ -23,7 +23,7 @@ fetch('http://localhost:8080/api/profile')
   })
   .catch(error => {
     console.log('   - 后端连接失败:', error.message)
-  })
+  })*/
 
 // 检查路由
 console.log('4. 可用的测试路由:')

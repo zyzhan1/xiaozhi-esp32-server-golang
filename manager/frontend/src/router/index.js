@@ -186,6 +186,12 @@ const routes = [
             name: 'AdminAgents',
             component: () => import('../views/admin/Agents.vue'),
             meta: { title: '智能体管理' }
+          },
+          {
+            path: 'chat',
+            name: 'AdminChat',
+            component: () => import('../views/admin/chat.vue'),
+            meta: { title: '聊天' }
           }
         ]
       },

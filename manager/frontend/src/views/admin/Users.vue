@@ -33,8 +33,11 @@
       </el-table-column>
       <el-table-column label="操作" width="360">
         <template #default="{ row }">
+          <el-button size="small" @click="openViewDialog(row)">查看</el-button>
           <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
+<!--
           <el-button size="small" type="success" @click="openQuotaDialog(row)" :disabled="row.role === 'admin'">复刻额度</el-button>
+-->
           <el-button size="small" type="warning" @click="openResetPasswordDialog(row)">
             重置密码
           </el-button>
@@ -173,6 +176,10 @@
         <el-button type="primary" :loading="quotaSaving" @click="saveQuotaSettings">保存额度</el-button>
       </template>
     </el-dialog>
+    <!-- 查看用户的菜单情况    -->
+    <el-dialog v-model="isView" title="用户菜单情况" width="800px">
+      <div class="">用户菜单</div>
+    </el-dialog>
   </div>
 </template>
 
@@ -196,6 +203,7 @@ const quotaRows = ref([])
 const quotaUser = ref({})
 const quotaOriginalMaxMap = ref({})
 const isEditMode = ref(false)
+const isView = ref(false)
 const currentUser = ref({})
 const searchKeyword = ref('')
 
@@ -294,6 +302,14 @@ const openEditDialog = (user) => {
   userForm.email = user.email
   userForm.role = user.role
   userDialogVisible.value = true
+}
+
+const openViewDialog = (user) => {
+  if (user.role === 'admin'){
+    ElMessage.info("管理员用户不需要查看")
+    return
+  }
+  isView.value = true
 }
 
 // 重置用户表单

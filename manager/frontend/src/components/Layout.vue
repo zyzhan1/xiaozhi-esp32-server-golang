@@ -119,6 +119,10 @@
               <el-icon><Connection /></el-icon>
               <span>智能体管理</span>
             </el-menu-item>
+            <el-menu-item v-if="authStore.isAdmin" index="/admin/chat">
+              <el-icon><Connection /></el-icon>
+              <span>聊天</span>
+            </el-menu-item>
           </el-menu>
         </el-scrollbar>
       </div>

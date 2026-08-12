@@ -33,7 +33,8 @@ console.log('   - /login - 完整登录页面')
 
 console.log('=== 前端诊断结束 ===')
 console.log('请在浏览器控制台中查看上述信息')
-
+`
+`
 // 导出到全局，方便在控制台中调用
 window.diagnose = () => {
   console.clear()
