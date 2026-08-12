@@ -212,6 +212,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import api from '../../utils/api'
+import { saveUserAuth } from '../../utils/userAuth'
 
 // 数据状态
 const userList = ref([])
@@ -331,38 +332,31 @@ const openEditDialog = (user) => {
   userDialogVisible.value = true
 }
 
-const openViewDialog = (user) => {
+const openViewDialog = async (user) => {
   if (user.role === 'admin'){
     ElMessage.info("管理员用户不需要查看")
     return
   }
-  // 跳转到 myUser.html 页面，携带用户信息作为 URL 参数
-  const url = `/myUser.html?id=${user.id}&username=${encodeURIComponent(user.username)}`
-  window.open(url, '_blank')
-}
-
-// 加载用户登录记录
-const loadUserLoginRecords = async (username) => {
-  viewLoading.value = true
   try {
-    const response = await api.post('/userlogin', { username })
-    const data = response.data?.data
-    if (Array.isArray(data)) {
-      viewLoginRecords.value = data
-    } else if (data && Array.isArray(data.records)) {
-      viewLoginRecords.value = data.records
-    } else if (data && Array.isArray(data.list)) {
-      viewLoginRecords.value = data.list
-    } else {
-      viewLoginRecords.value = []
-    }
+    // 调用后端接口获取目标用户的 token 和信息
+    const response = await api.post('/userlogin', { username: user.username })
+    const data = response.data?.data || response.data || {}
+    const token = data.token || ''
+    const userData = data.user || { id: user.id, username: user.username }
+
+    // 直接写入普通用户的 localStorage，完整覆盖旧值防止串号
+    saveUserAuth(token, userData)
+
+    const url = `/myUser.html?id=${user.id}&username=${encodeURIComponent(user.username)}`
+
+    // 利用浏览器原生窗口命名复用机制，同名窗口自动覆盖内容
+    const win = window.open(url, 'userViewWindow')
+    if (win) win.focus()
   } catch (error) {
-    ElMessage.error('加载用户登录记录失败')
-    viewLoginRecords.value = []
-  } finally {
-    viewLoading.value = false
+    ElMessage.error('获取用户登录信息失败')
   }
 }
+
 
 // 重置查看弹窗数据
 const resetViewDialog = () => {
