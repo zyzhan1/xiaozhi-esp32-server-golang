@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, provide } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   User,
@@ -103,6 +103,20 @@ import UserSpeakers from './views/myUser/UserSpeakers.vue'
 import UserVoiceClones from './views/myUser/UserVoiceClones.vue'
 import UserKnowledgeBases from './views/myUser/UserKnowledgeBases.vue'
 import appLogo from '@/assets/brand/zutoAicloud.png'
+
+// 智能体筛选状态（供设备列表组件注入）
+const pendingDeviceAgentId = ref('')
+
+provide('navigateToDevices', (agentId) => {
+  pendingDeviceAgentId.value = agentId || ''
+  activeMenu.value = 'devices'
+  menuComponentKey.value++
+  const hash = window.location.hash || ''
+  const pathPart = hash.split('?')[0] || '#/'
+  window.location.hash = `${pathPart}?menu=devices`
+})
+
+provide('pendingDeviceAgentId', pendingDeviceAgentId)
 
 const menuTitleMap = {
   agents: '智能体管理',
@@ -149,9 +163,8 @@ const usernameInitial = computed(() => {
 const handleMenuSelect = (index) => {
   activeMenu.value = index
   menuComponentKey.value++
-  // 直接更新 URL hash 中的 menu 参数（不经过 Vue Router，避免 hash 路由解析问题）
   const hash = window.location.hash || ''
-  const pathPart = hash.split('?')[0] || '#/user/agents'
+  const pathPart = hash.split('?')[0] || '#/'
   const newHash = `${pathPart}?menu=${index}`
   window.location.hash = newHash
 }
@@ -419,6 +432,7 @@ onMounted(() => {
   min-height: 300px;
 }
 
+/* 响应式布局 */
 @media (max-width: 1360px) {
   .user-layout {
     grid-template-columns: 208px minmax(0, 1fr);

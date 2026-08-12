@@ -194,25 +194,37 @@
       :devices="allDevices"
       @success="handleInjectSuccess"
     />
+
+    <AgentConfigDialog
+      v-model:visible="configDialogVisible"
+      :agent-id="currentAgentId"
+      @saved="handleAgentSaved"
+    />
+
+    <AgentChatDialog
+      v-model:visible="chatDialogVisible"
+      :agent-id="currentAgentId"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, inject, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Setting, ChatDotRound, Monitor, Delete, Connection } from '@element-plus/icons-vue'
 import userApi from '../../utils/userApi.js'
 import AgentForm from '../../components/common/AgentForm.vue'
 import DeviceForm from '../../components/common/DeviceForm.vue'
 import MessageInjectDialog from '../../components/user/MessageInjectDialog.vue'
+import AgentConfigDialog from './AgentConfigDialog.vue'
+import AgentChatDialog from './AgentChatDialog.vue'
 import { createDefaultAgentForm, createDefaultDeviceForm } from '../../composables/useAgentFormOptions'
 import mcpStatusIcon from '../../assets/agent-status-icons/mcp.png'
 import openClawStatusIcon from '../../assets/agent-status-icons/openclaw.png'
 import memoryStatusIcon from '../../assets/agent-status-icons/memory.png'
 import knowledgeBaseStatusIcon from '../../assets/agent-status-icons/knowledge-base.png'
 
-const router = useRouter()
+const navigateToDevices = inject('navigateToDevices', () => {})
 
 const agents = ref([])
 const allDevices = ref([])
@@ -221,6 +233,9 @@ const knowledgeBases = ref([])
 const showAddAgentDialog = ref(false)
 const showAddDeviceDialog = ref(false)
 const showInjectMessageDialog = ref(false)
+const configDialogVisible = ref(false)
+const chatDialogVisible = ref(false)
+const currentAgentId = ref(null)
 
 const adding = ref(false)
 const addingDevice = ref(false)
@@ -379,15 +394,21 @@ const handleCloseAddAgent = () => {
 }
 
 const editAgent = (id) => {
-  router.push(`/user/agents/${id}/edit`)
+  currentAgentId.value = id
+  configDialogVisible.value = true
 }
 
 const handleChatHistory = (id) => {
-  router.push(`/user/agents/${id}/history`)
+  currentAgentId.value = id
+  chatDialogVisible.value = true
 }
 
 const handleManageDevices = (id) => {
-  router.push({ path: '/user/devices', query: { agent_id: id } })
+  navigateToDevices(String(id))
+}
+
+const handleAgentSaved = async () => {
+  await loadAgents()
 }
 
 const handleDeleteAgent = async (agent) => {

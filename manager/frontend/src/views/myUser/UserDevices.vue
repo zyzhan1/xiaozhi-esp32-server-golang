@@ -325,7 +325,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref, reactive, onMounted } from 'vue'
+import { computed, inject, nextTick, ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Monitor, Setting, Delete, User, ChatDotRound, EditPen, Check, Close } from '@element-plus/icons-vue'
 import userApi from '../../utils/userApi.js'
@@ -334,6 +334,15 @@ import MessageInjectDialog from '../../components/user/MessageInjectDialog.vue'
 import { createDefaultDeviceForm } from '../../composables/useAgentFormOptions'
 
 const filterAgentId = ref('')
+const pendingDeviceAgentId = inject('pendingDeviceAgentId', ref(''))
+
+// 监听来自父组件的智能体筛选（点击智能体卡片的“设备”按钮时触发）
+watch(pendingDeviceAgentId, (val) => {
+  if (val) {
+    filterAgentId.value = val
+    pendingDeviceAgentId.value = ''
+  }
+})
 const bindingAgentId = computed(() => filterAgentId.value || null)
 const agents = ref([])
 const devices = ref([])
