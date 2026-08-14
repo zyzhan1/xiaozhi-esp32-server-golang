@@ -26,10 +26,11 @@
 
     <el-form-item v-if="isBindMode && !hasFixedAgent" label="目标智能体" prop="agent_id">
       <el-select v-model="form.agent_id" placeholder="请选择要绑定的智能体" filterable style="width: 100%">
+        <el-option label="请选择智能体" :value="0" disabled />
         <el-option
           v-for="agent in displayAgents"
           :key="agent.id"
-          :label="agent.name || `智能体 #${agent.id}`"
+          :label="agent.id === 0 ? '请选择智能体' : (agent.name || `智能体 #${agent.id}`)"
           :value="agent.id"
         />
       </el-select>
@@ -43,6 +44,7 @@
         autocomplete="off"
       />
       <div class="form-hint">
+        <span>请输入 6 位验证码或设备 MAC!</span>
         <span>示例：</span>
         <code>123456</code>
         <code>28:0A:C6:1D:3B:E8</code>
@@ -171,6 +173,7 @@ const displayAgents = computed(() => {
 })
 
 const agentLabel = (agent) => {
+  if (agent.id === 0) return '请选择智能体'
   if (!props.isAdmin) return agent.name || `智能体 #${agent.id}`
   const username = agent.username ? ` · ${agent.username}` : ''
   return `${agent.name || `智能体 #${agent.id}`} (用户${agent.user_id}${username})`

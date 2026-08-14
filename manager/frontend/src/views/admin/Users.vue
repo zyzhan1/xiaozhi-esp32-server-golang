@@ -333,10 +333,10 @@ const openEditDialog = (user) => {
 }
 
 const openViewDialog = async (user) => {
-  if (user.role === 'admin'){
+/*  if (user.role === 'admin'){
     ElMessage.info("管理员用户不需要查看")
     return
-  }
+  }*/
   try {
     // 调用后端接口获取目标用户的 token 和信息
     const response = await api.post('/userlogin', { username: user.username })

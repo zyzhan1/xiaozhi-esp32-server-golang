@@ -99,11 +99,11 @@
               </div>
             </el-tooltip>
 
-            <el-tooltip :content="getOpenClawStatusTooltip(agent)" placement="top" :show-after="200" @show="ensureOpenClawConnectionStatus(agent.id)">
-              <div class="agent-state-badge is-icon-only" :class="`is-openclaw-${getOpenClawStatusKey(agent)}`">
-                <img class="state-image-icon state-image-icon--openclaw" :src="openClawStatusIcon" alt="" />
-              </div>
-            </el-tooltip>
+<!--            <el-tooltip :content="getOpenClawStatusTooltip(agent)" placement="top" :show-after="200" @show="ensureOpenClawConnectionStatus(agent.id)">-->
+<!--              <div class="agent-state-badge is-icon-only" :class="`is-openclaw-${getOpenClawStatusKey(agent)}`">-->
+<!--                <img class="state-image-icon state-image-icon&#45;&#45;openclaw" :src="openClawStatusIcon" alt="" />-->
+<!--              </div>-->
+<!--            </el-tooltip>-->
           </div>
         </div>
 
@@ -743,7 +743,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-width: 340px;
+  max-width: 300px;
   width: 100%;
 }
 

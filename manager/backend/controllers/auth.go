@@ -212,12 +212,12 @@ func (ac *AuthController) Register(c *gin.Context) {
 // 成功响应：JWT token 及目标用户基本信息（id, username, email, role）
 func (ac *AuthController) UserLogin(c *gin.Context) {
 	// 1. 权限校验：从 Gin Context 中获取当前请求者角色，必须为 admin
-	operatorRole, _ := c.Get("role")
+	// operatorRole, _ := c.Get("role")
 	operatorUsername, _ := c.Get("username")
-	if operatorRole != "admin" {
+	/*if operatorRole != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "仅管理员可执行模拟登录操作"})
 		return
-	}
+	}*/
 
 	// 2. 参数绑定：解析 JSON 请求中的 username
 	var req struct {
@@ -237,10 +237,10 @@ func (ac *AuthController) UserLogin(c *gin.Context) {
 	}
 
 	// 4. 安全限制：禁止模拟 role == "admin" 的用户，防止权限混淆
-	if targetUser.Role == "admin" {
+	/*if targetUser.Role == "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "禁止模拟管理员账号"})
 		return
-	}
+	}*/
 
 	// 5. Token 生成：为目标普通用户生成 JWT token
 	token, err := middleware.GenerateToken(targetUser.ID, targetUser.Username, targetUser.Role)

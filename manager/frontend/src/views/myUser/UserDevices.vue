@@ -910,12 +910,12 @@ onMounted(() => {
   border: 1px solid rgba(229, 229, 234, 0.72);
   box-shadow: var(--apple-shadow-md);
   transition: all 0.3s ease;
-  height: 100%;
+  height: 90%;
   display: flex;
   flex-direction: column;
   width: 100%;
   min-width: 0;
-  max-width: 340px;
+  max-width: 300px;
 }
 
 .device-card:hover {

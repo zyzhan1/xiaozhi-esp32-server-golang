@@ -54,7 +54,7 @@
         <template #default="{ row }">
           <el-button size="small" @click="editAgent(row)">编辑</el-button>
           <el-button size="small" type="primary" @click="openDiagnostics(row, 'mcp')">MCP</el-button>
-          <el-button size="small" type="success" @click="openDiagnostics(row, 'openclaw')">OpenClaw</el-button>
+          <el-button size="small" type="success" >聊天</el-button>
           <el-button size="small" type="danger" @click="deleteAgent(row)">删除</el-button>
         </template>
       </el-table-column>
