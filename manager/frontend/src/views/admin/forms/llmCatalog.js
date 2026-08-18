@@ -146,7 +146,7 @@ const providerTypeMap = {
   doubao: 'openai',
   siliconflow: 'openai',
   deepseek: 'openai',
-  nova: 'ollama',
+  nova: 'nova',
   dify: 'dify',
   coze: 'coze'
 }
@@ -200,7 +200,7 @@ const catalog = {
   nova:{
     quickUrl: 'http://192.168.50.241:15050/v1',
     modelPlaceholder: '请选择或输入模型名称',
-    modelHint: 'Nova 使用本地或私有模型服务，模型列表和地址都允许自定义。',
+    modelHint: 'Nova 使用本地或局域网模型服务，模型列表和地址都允许自定义。',
     models: [
       createModel('DeepSeek-V4-Flash-IQ2XXS.gguf', { label: '思考强度', options: openAIReasoningLegacy }, { request: openAIReasoningRequest })
     ],

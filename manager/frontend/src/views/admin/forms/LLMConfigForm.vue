@@ -13,7 +13,7 @@
         <el-option label="DeepSeek（深度求索）" value="deepseek" />
         <el-option label="Dify" value="dify" />
         <el-option label="Coze" value="coze" />
-        <el-option label="Nova" value="nova" />
+        <el-option label="Nova(局域网)" value="nova" />
       </el-select>
     </el-form-item>
     <el-form-item label="配置名称" prop="name">
