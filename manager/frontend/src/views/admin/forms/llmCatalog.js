@@ -146,13 +146,14 @@ const providerTypeMap = {
   doubao: 'openai',
   siliconflow: 'openai',
   deepseek: 'openai',
+  nova: 'ollama',
   dify: 'dify',
   coze: 'coze'
 }
 
 const knownProviders = new Set(Object.keys(providerTypeMap))
 
-const editableBaseURLProviders = new Set(['openai', 'ollama', 'azure', 'dify', 'coze'])
+const editableBaseURLProviders = new Set(['openai', 'ollama', 'nova', 'azure', 'dify', 'coze'])
 
 const catalog = {
   openai: {
@@ -194,6 +195,15 @@ const catalog = {
     modelPlaceholder: '请选择或输入模型名称',
     modelHint: 'Ollama 使用本地或私有模型服务，模型列表和地址都允许自定义。',
     models: [],
+    fallbackThinking: null
+  },
+  nova:{
+    quickUrl: 'http://192.168.50.241:15050/v1',
+    modelPlaceholder: '请选择或输入模型名称',
+    modelHint: 'Nova 使用本地或私有模型服务，模型列表和地址都允许自定义。',
+    models: [
+      createModel('DeepSeek-V4-Flash-IQ2XXS.gguf', { label: '思考强度', options: openAIReasoningLegacy }, { request: openAIReasoningRequest })
+    ],
     fallbackThinking: null
   },
   azure: {

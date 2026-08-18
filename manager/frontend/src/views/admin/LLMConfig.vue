@@ -422,6 +422,7 @@ function getProviderLabel(provider) {
     deepseek: 'DeepSeek（深度求索）',
     openai: 'OpenAI',
     ollama: 'Ollama',
+    nova: 'Nova',
     dify: 'Dify',
     coze: 'Coze'
   }

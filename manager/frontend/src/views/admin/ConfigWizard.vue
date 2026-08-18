@@ -453,7 +453,8 @@ const llmFormRules = {
   }],
   api_key: [{
     validator: (_, value, callback) => {
-      if (getResolvedLLMType(llmForm.provider, llmForm.type) !== 'ollama' && !value) {
+      const resolvedType = getResolvedLLMType(llmForm.provider, llmForm.type)
+      if (resolvedType !== 'ollama' && !value) {
         callback(new Error('请输入API密钥'))
         return
       }
@@ -463,7 +464,8 @@ const llmFormRules = {
   }],
   base_url: [{
     validator: (_, value, callback) => {
-      if (getResolvedLLMType(llmForm.provider, llmForm.type) !== 'coze' && !value) {
+      const resolvedType = getResolvedLLMType(llmForm.provider, llmForm.type)
+      if (resolvedType !== 'coze' && !value) {
         callback(new Error('请输入基础URL'))
         return
       }

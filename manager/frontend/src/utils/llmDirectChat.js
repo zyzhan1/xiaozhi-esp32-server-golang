@@ -19,6 +19,7 @@ export const PROVIDER_LABELS = {
   deepseek: 'DeepSeek',
   openai: 'OpenAI',
   ollama: 'Ollama',
+  nova: 'Nova',
   dify: 'Dify',
   coze: 'Coze'
 }

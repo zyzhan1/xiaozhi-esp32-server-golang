@@ -13,6 +13,7 @@
         <el-option label="DeepSeek（深度求索）" value="deepseek" />
         <el-option label="Dify" value="dify" />
         <el-option label="Coze" value="coze" />
+        <el-option label="Nova" value="nova" />
       </el-select>
     </el-form-item>
     <el-form-item label="配置名称" prop="name">
@@ -173,11 +174,11 @@ const formRef = ref()
 const resolvedProvider = computed(() => resolveLLMProvider(props.model?.provider, props.model?.type))
 const effectiveType = computed(() => getProviderFixedType(resolvedProvider.value))
 const isOpenAIOrOllama = computed(() => effectiveType.value === 'openai' || effectiveType.value === 'ollama')
-const isOllama = computed(() => effectiveType.value === 'ollama')
+const isOllamaOrNova = computed(() => effectiveType.value === 'ollama')
 const isDify = computed(() => effectiveType.value === 'dify')
 const isCoze = computed(() => effectiveType.value === 'coze')
 const showBaseURL = computed(() => isProviderBaseURLEditable(resolvedProvider.value))
-const apiKeyRequired = computed(() => !isOllama.value)
+const apiKeyRequired = computed(() => !isOllamaOrNova.value)
 
 const defaultThinkingMode = 'default'
 

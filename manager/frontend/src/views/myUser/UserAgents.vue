@@ -213,18 +213,21 @@ import { computed, inject, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Setting, ChatDotRound, Monitor, Delete, Connection } from '@element-plus/icons-vue'
 import userApi from '../../utils/userApi.js'
+import api from '../../utils/api.js'
 import AgentForm from '../../components/common/AgentForm.vue'
 import DeviceForm from '../../components/common/DeviceForm.vue'
 import MessageInjectDialog from '../../components/user/MessageInjectDialog.vue'
 import AgentConfigDialog from './AgentConfigDialog.vue'
 import AgentChatDialog from './AgentChatDialog.vue'
-import { createDefaultAgentForm, createDefaultDeviceForm } from '../../composables/useAgentFormOptions'
+import { createDefaultAgentForm, createDefaultDeviceForm } from '@/composables/useAgentFormOptions.js'
 import mcpStatusIcon from '../../assets/agent-status-icons/mcp.png'
-import openClawStatusIcon from '../../assets/agent-status-icons/openclaw.png'
 import memoryStatusIcon from '../../assets/agent-status-icons/memory.png'
 import knowledgeBaseStatusIcon from '../../assets/agent-status-icons/knowledge-base.png'
+import {useAuthStore} from "@/stores/auth.js";
 
 const navigateToDevices = inject('navigateToDevices', () => {})
+
+const authStore = useAuthStore()
 
 const agents = ref([])
 const allDevices = ref([])
@@ -258,7 +261,6 @@ const knowledgeBaseNameMap = computed(() => {
   return map
 })
 const mcpConnectionStatusMap = reactive({})
-const openClawConnectionStatusMap = reactive({})
 const globalMcpServiceCount = ref(null)
 const globalMcpServiceCountError = ref('')
 
@@ -320,6 +322,7 @@ const handleAddAgent = async () => {
       ElMessage.success('智能体添加成功')
       handleCloseAddAgent()
       await loadAgents()
+      loadMcpConnectionStatuses()
     }
   } catch (error) {
     ElMessage.error(error.response?.data?.error || '添加智能体失败')
@@ -381,6 +384,7 @@ const openInjectMessageDialog = () => {
 
 const handleDeviceBound = async () => {
   await Promise.all([loadAgents(), loadDevices()])
+  loadMcpConnectionStatuses()
 }
 
 const handleInjectSuccess = async () => {
@@ -409,6 +413,7 @@ const handleManageDevices = (id) => {
 
 const handleAgentSaved = async () => {
   await loadAgents()
+  loadMcpConnectionStatuses()
 }
 
 const handleDeleteAgent = async (agent) => {
@@ -431,6 +436,7 @@ const handleDeleteAgent = async (agent) => {
     await userApi.delete(`/user/agents/${agent.id}`)
     ElMessage.success('智能体删除成功')
     await loadAgents()
+    loadMcpConnectionStatuses()
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error(error.response?.data?.error || '智能体删除失败')
@@ -550,30 +556,6 @@ const getMcpStatusTooltip = (agent) => {
   return `智能体WebSocket：${connectionText}${getMcpClientCountText(connection)}｜全局MCP服务：${getGlobalMcpServiceCountText()}｜服务范围：${getMcpServiceScopeText(agent)}`
 }
 
-const parseOpenClawConfig = (agent) => {
-  if (agent?.openclaw && typeof agent.openclaw === 'object') {
-    return { allowed: !!agent.openclaw.allowed }
-  }
-
-  if (typeof agent?.openclaw_config === 'string' && agent.openclaw_config.trim()) {
-    try {
-      const parsed = JSON.parse(agent.openclaw_config)
-      return { allowed: !!parsed?.allowed }
-    } catch {}
-  }
-
-  return { allowed: false }
-}
-
-const getOpenClawStatusKey = (agent) => {
-  return parseOpenClawConfig(agent).allowed ? 'enabled' : 'disabled'
-}
-
-const getOpenClawStatusTooltip = (agent) => {
-  const connection = openClawConnectionStatusMap[String(agent.id)]
-  const configText = parseOpenClawConfig(agent).allowed ? '已启用' : '未启用'
-  return `OpenClaw状态：${configText}｜连接状态：${getConnectionStatusText(connection)}`
-}
 
 const ensureMcpConnectionStatus = async (agentId) => {
   const key = String(agentId)
@@ -590,7 +572,10 @@ const ensureMcpConnectionStatus = async (agentId) => {
   }
 
   try {
-    const response = await userApi.get(`/user/agents/${agentId}/mcp-endpoint`)
+    const isAdmin = authStore.isAdmin
+    const response = isAdmin
+      ? await api.get(`/admin/agents/${agentId}/mcp-endpoint`)
+      : await userApi.get(`/user/agents/${agentId}/mcp-endpoint`)
     const data = response.data.data || {}
     mcpConnectionStatusMap[key] = {
       loading: false,
@@ -612,6 +597,10 @@ const ensureMcpConnectionStatus = async (agentId) => {
   }
 }
 
+const loadMcpConnectionStatuses = () => {
+  agents.value.forEach(a => void ensureMcpConnectionStatus(a.id))
+}
+
 const loadGlobalMcpServiceCount = async () => {
   globalMcpServiceCountError.value = ''
   try {
@@ -622,44 +611,6 @@ const loadGlobalMcpServiceCount = async () => {
     globalMcpServiceCount.value = null
     globalMcpServiceCountError.value = error.response?.data?.error || error.message || '加载失败'
     console.error('加载全局MCP服务数量失败:', error)
-  }
-}
-
-const loadMcpConnectionStatuses = async () => {
-  await Promise.all(agents.value.map(agent => ensureMcpConnectionStatus(agent.id)))
-}
-
-const ensureOpenClawConnectionStatus = async (agentId) => {
-  const key = String(agentId)
-  const current = openClawConnectionStatusMap[key]
-  if (current?.loading || current?.loaded) return
-
-  openClawConnectionStatusMap[key] = {
-    loading: true,
-    loaded: false,
-    connected: false,
-    status: 'unknown',
-    status_message: ''
-  }
-
-  try {
-    const response = await userApi.get(`/user/agents/${agentId}/openclaw-endpoint`)
-    const data = response.data.data || {}
-    openClawConnectionStatusMap[key] = {
-      loading: false,
-      loaded: true,
-      connected: !!data.connected,
-      status: String(data.status || 'unknown').toLowerCase(),
-      status_message: String(data.status_message || '')
-    }
-  } catch (error) {
-    openClawConnectionStatusMap[key] = {
-      loading: false,
-      loaded: true,
-      connected: false,
-      status: 'unknown',
-      status_message: error.response?.data?.error || error.message || '状态获取失败'
-    }
   }
 }
 
@@ -921,37 +872,6 @@ onMounted(async () => {
 .state-image-icon--memory { width: 14px; height: 14px; }
 .state-image-icon--knowledge { width: 15px; height: 15px; }
 .state-image-icon--mcp { width: 15px; height: 15px; }
-.state-image-icon--openclaw { width: 15px; height: 15px; }
-
-.agent-state-badge.is-memory-short,
-.agent-state-badge.is-active,
-.agent-state-badge.is-mcp-checking {
-  color: var(--apple-primary);
-  background: rgba(0, 122, 255, 0.08);
-  border-color: rgba(0, 122, 255, 0.12);
-}
-
-.agent-state-badge.is-memory-long,
-.agent-state-badge.is-mcp-online,
-.agent-state-badge.is-openclaw-enabled {
-  color: #176a31;
-  background: rgba(52, 199, 89, 0.12);
-  border-color: rgba(52, 199, 89, 0.16);
-}
-
-.agent-state-badge.is-mcp-offline {
-  color: #b42318;
-  background: rgba(255, 59, 48, 0.1);
-  border-color: rgba(255, 59, 48, 0.16);
-}
-
-.agent-state-badge.is-memory-none,
-.agent-state-badge.is-mcp-unknown,
-.agent-state-badge.is-openclaw-disabled {
-  color: var(--apple-text-tertiary);
-  background: rgba(248, 250, 252, 0.92);
-  border-color: rgba(229, 229, 234, 0.72);
-}
 
 .agent-summary { display: grid; gap: 6px; }
 
@@ -985,22 +905,8 @@ onMounted(async () => {
   margin-top: auto;
 }
 
-.agent-actions .el-button {
-  min-width: 0;
-  width: 100%;
-  min-height: 34px;
-  margin-left: 0;
-  padding: 0 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(214, 219, 228, 0.9);
-  background: rgba(248, 250, 252, 0.92);
-  color: #4b5563;
-  box-shadow: none;
-  font-size: 12px;
-  font-weight: 600;
-}
 
-.agent-actions .el-button + .el-button { margin-left: 0; }
+
 
 .agent-actions :deep(.el-button > span) {
   display: inline-flex;
@@ -1012,7 +918,6 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
-.agent-actions :deep(.el-button .el-icon) { font-size: 13px; }
 
 .agent-action-button-danger {
   border-color: rgba(244, 191, 191, 0.95);
@@ -1026,11 +931,7 @@ onMounted(async () => {
   color: #1d4ed8;
 }
 
-.agent-actions .el-button:hover {
-  border-color: rgba(148, 163, 184, 0.82);
-  background: rgba(241, 245, 249, 0.98);
-  color: #334155;
-}
+
 
 .agent-action-button-feature:hover {
   border-color: rgba(96, 165, 250, 0.95);
@@ -1042,19 +943,6 @@ onMounted(async () => {
   border-color: rgba(248, 113, 113, 0.78);
   background: rgba(254, 242, 242, 0.98);
   color: #991b1b;
-}
-
-.dialog-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.form-tip {
-  margin-top: 6px;
-  color: var(--apple-text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 .dialog-footer {
@@ -1077,8 +965,6 @@ onMounted(async () => {
   .page-toolbar, .agent-card { border-radius: 24px; }
   .page-toolbar { padding: 20px 18px; }
   .toolbar-actions, .dialog-footer { width: 100%; flex-wrap: wrap; }
-  .toolbar-actions .el-button, .dialog-footer .el-button { flex: 1; min-width: 120px; }
-  .dialog-grid { grid-template-columns: 1fr; }
   .agents-grid { grid-template-columns: 1fr; }
 }
 
