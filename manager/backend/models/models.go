@@ -280,6 +280,28 @@ type UserVoiceCloneQuota struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+// UserLLMConfig 用户自定义模型配置
+type UserLLMConfig struct {
+	ID          uint64    `json:"id" gorm:"primarykey"`
+	UserID      uint64    `json:"user_id" gorm:"not null;index:idx_user_id"`
+	Name        string    `json:"name" gorm:"type:varchar(128);not null"`
+	Type        string    `json:"type" gorm:"type:varchar(16);not null;default:'lan'"` // LLM提供商/协议类型，如 deepseek、openai、ollama、dify、coze 等
+	BaseURL     string    `json:"base_url" gorm:"type:varchar(512);not null"`
+	ModelName   string    `json:"model_name" gorm:"type:varchar(128)"`
+	APIKey      string    `json:"api_key,omitempty" gorm:"type:varchar(512);column:api_key"`
+	Status      int8      `json:"status" gorm:"not null;default:1"` // 1-启用, 0-禁用
+	Balance     *float64  `json:"balance" gorm:"type:decimal(12,4)"`
+	UsedTokens  *int64    `json:"used_tokens"`
+	TotalTokens *int64    `json:"total_tokens"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// TableName 指定表名
+func (UserLLMConfig) TableName() string {
+	return "user_llm_configs"
+}
+
 // ChatMessage 聊天消息模型
 type ChatMessage struct {
 	ID        uint   `json:"id" gorm:"primarykey"`

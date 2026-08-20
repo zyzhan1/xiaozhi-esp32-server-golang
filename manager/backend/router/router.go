@@ -187,8 +187,12 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				// user.PUT("/roles/:id", adminController.UpdateRole)
 				// user.DELETE("/roles/:id", adminController.DeleteRole)
 
-				// 配置列表
-				user.GET("/llm-configs", userController.GetLLMConfigs)
+				// 用户自定义LLM模型配置
+				user.GET("/llm-configs", userController.ListUserLLMConfigs)
+				user.POST("/llm-configs", userController.CreateUserLLMConfig)
+				user.PUT("/llm-configs/:id", userController.UpdateUserLLMConfig)
+				user.DELETE("/llm-configs/:id", userController.DeleteUserLLMConfig)
+				user.GET("/llm-configs/:id/balance", userController.GetUserLLMConfigBalance)
 				user.GET("/tts-configs", userController.GetTTSConfigs)
 
 				// MCP接入点
