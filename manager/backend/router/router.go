@@ -60,6 +60,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		AudioBasePath: audioBasePath,
 		MaxFileSize:   maxFileSize,
 	}
+	chatSessionController := &controllers.ChatSessionController{DB: db}
 
 	// API路由组
 	api := r.Group("/api")
@@ -223,12 +224,21 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				user.GET("/speaker-groups/:id/samples/:sample_id/file", speakerGroupController.GetSampleFile)
 				user.DELETE("/speaker-groups/:id/samples/:sample_id", speakerGroupController.DeleteSample)
 
-				// 聊天历史
+				// 聊天历史（设备端）
 				user.GET("/history/messages", chatHistoryController.GetMessages)
 				user.DELETE("/history/messages/:id", chatHistoryController.DeleteMessage)
 				user.GET("/history/export", chatHistoryController.ExportMessages)
 				user.GET("/history/agents/:agent_id/messages", chatHistoryController.GetMessagesByAgent)
 				user.GET("/history/messages/:id/audio", chatHistoryController.GetAudioFile)
+
+				// 聊天会话（用户端模型/智能体对话）
+				user.GET("/chat-sessions", chatSessionController.GetChatSessions)
+				user.POST("/chat-sessions", chatSessionController.CreateChatSession)
+				user.PUT("/chat-sessions/:id", chatSessionController.UpdateChatSession)
+				user.DELETE("/chat-sessions/:id", chatSessionController.DeleteChatSession)
+				user.GET("/chat-sessions/:id", chatSessionController.GetChatSessionDetail)
+				user.GET("/chat-sessions/:id/messages", chatSessionController.GetChatSessionMessages)
+				user.POST("/chat-sessions/:id/messages", chatSessionController.AppendChatMessages)
 			}
 
 			// 外部OpenAPI路由（支持JWT或API Token）

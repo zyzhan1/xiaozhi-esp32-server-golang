@@ -360,3 +360,94 @@ func (m *ChatMessage) AfterFind(tx *gorm.DB) error {
 	}
 	return nil
 }
+
+// ============================================================
+// 用户聊天会话模型（前端用户与模型/智能体的对话）
+// 对应 SQL: chat_sessions
+// ============================================================
+
+// ChatSession 聊天会话模型
+type ChatSession struct {
+	ID            uint64    `json:"id" gorm:"primarykey;comment:会话ID"`
+	UserID        uint64    `json:"user_id" gorm:"not null;index:idx_user_id;comment:用户ID"`
+	ChatType      string    `json:"chat_type" gorm:"type:varchar(16);not null;index:idx_user_type;comment:对话类型: model-模型对话 / agent-智能体对话"`
+	TargetID      uint64    `json:"target_id" gorm:"not null;index:idx_user_target;comment:模型配置ID(llm_config_id) 或 智能体ID(agent_id)"`
+	TargetName    *string   `json:"target_name" gorm:"type:varchar(128);comment:模型名称 或 智能体名称（冗余，便于列表展示）"`
+	Title         *string   `json:"title" gorm:"type:varchar(256);comment:会话标题/话题（可自动生成或用户修改）"`
+	Summary       *string   `json:"summary" gorm:"type:varchar(512);comment:消息摘要（最后一条消息的前N个字符）"`
+	MessageCount  int       `json:"message_count" gorm:"default:0;comment:消息轮次计数"`
+	TotalTokens   int64     `json:"total_tokens" gorm:"default:0;comment:累计 Token 消耗"`
+	TotalDuration int64     `json:"total_duration" gorm:"default:0;comment:累计耗时（毫秒）"`
+	TotalBytes    int64     `json:"total_bytes" gorm:"default:0;comment:累计发送字节数"`
+	ToolsUsedJSON *string   `json:"tools_used,omitempty" gorm:"type:json;column:tools_used;comment:使用的工具列表 [\"tool1\",\"tool2\"]"`
+	KnowledgeJSON *string   `json:"knowledge_ids,omitempty" gorm:"type:json;column:knowledge_ids;comment:关联的知识库ID列表 [1,2,3]"`
+	TTSAudioURL   *string   `json:"tts_audio_url,omitempty" gorm:"type:varchar(512);comment:TTS 输出语音文件地址（智能体对话）"`
+	ASRAudioURL   *string   `json:"asr_audio_url,omitempty" gorm:"type:varchar(512);comment:ASR 输入语音文件地址（智能体对话）"`
+	CreatedAt     time.Time `json:"created_at" gorm:"index:idx_created_at;comment:创建时间"`
+	UpdatedAt     time.Time `json:"updated_at" gorm:"comment:更新时间"`
+
+	// 非数据库字段：反序列化后的 JSON 数据
+	ToolsUsed    []string `json:"tools_used_list,omitempty" gorm:"-"`
+	KnowledgeIDs []int64  `json:"knowledge_id_list,omitempty" gorm:"-"`
+}
+
+// TableName 指定表名
+func (ChatSession) TableName() string {
+	return "chat_sessions"
+}
+
+// BeforeSave GORM hook - 序列化 JSON 字段
+func (s *ChatSession) BeforeSave(tx *gorm.DB) error {
+	if s.ToolsUsed != nil {
+		data, err := json.Marshal(s.ToolsUsed)
+		if err != nil {
+			return err
+		}
+		str := string(data)
+		s.ToolsUsedJSON = &str
+	}
+	if s.KnowledgeIDs != nil {
+		data, err := json.Marshal(s.KnowledgeIDs)
+		if err != nil {
+			return err
+		}
+		str := string(data)
+		s.KnowledgeJSON = &str
+	}
+	return nil
+}
+
+// AfterFind GORM hook - 反序列化 JSON 字段
+func (s *ChatSession) AfterFind(tx *gorm.DB) error {
+	if s.ToolsUsedJSON != nil && *s.ToolsUsedJSON != "" {
+		_ = json.Unmarshal([]byte(*s.ToolsUsedJSON), &s.ToolsUsed)
+	}
+	if s.KnowledgeJSON != nil && *s.KnowledgeJSON != "" {
+		_ = json.Unmarshal([]byte(*s.KnowledgeJSON), &s.KnowledgeIDs)
+	}
+	return nil
+}
+
+// ============================================================
+// 用户聊天会话消息模型（前端用户与模型/智能体的对话消息）
+// 对应 SQL: chat_messages（因与设备端 ChatMessage 表名冲突，使用 chat_session_messages）
+// ============================================================
+
+// ChatSessionMessage 聊天会话消息模型
+type ChatSessionMessage struct {
+	ID          uint64    `json:"id" gorm:"primarykey;comment:消息ID"`
+	SessionID   uint64    `json:"session_id" gorm:"not null;index:idx_session_id;comment:所属会话ID"`
+	Role        string    `json:"role" gorm:"type:varchar(16);not null;comment:消息角色: user / assistant / system"`
+	Content     string    `json:"content" gorm:"type:text;not null;comment:消息文本内容"`
+	ModelName   *string   `json:"model_name,omitempty" gorm:"type:varchar(255);default:NULL;comment:AI回答时使用的模型名称，用户消息为NULL"`
+	Tokens      int       `json:"tokens" gorm:"default:0;comment:该条消息消耗的 Token 数"`
+	Duration    int64     `json:"duration" gorm:"default:0;comment:该轮对话耗时（毫秒）"`
+	TTSAudioURL *string   `json:"tts_audio_url,omitempty" gorm:"type:varchar(512);comment:TTS 语音文件地址（单条消息级别）"`
+	ASRAudioURL *string   `json:"asr_audio_url,omitempty" gorm:"type:varchar(512);comment:ASR 语音文件地址（单条消息级别）"`
+	CreatedAt   time.Time `json:"created_at" gorm:"index:idx_session_time;comment:创建时间"`
+}
+
+// TableName 指定表名（避免与设备端 chat_messages 表冲突）
+func (ChatSessionMessage) TableName() string {
+	return "chat_session_messages"
+}

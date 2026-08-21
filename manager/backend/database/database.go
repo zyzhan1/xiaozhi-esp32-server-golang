@@ -76,6 +76,8 @@ func Init(cfg config.DatabaseConfig) *gorm.DB {
 		&models.VoiceCloneTask{},
 		&models.UserVoiceCloneQuota{},
 		&models.UserLLMConfig{},
+		&models.ChatSession{},
+		&models.ChatSessionMessage{},
 	)
 	if err != nil {
 		log.Printf("数据库表结构迁移失败: %v", err)
@@ -83,6 +85,15 @@ func Init(cfg config.DatabaseConfig) *gorm.DB {
 		return nil
 	}
 	log.Println("数据库表结构迁移成功")
+
+	// 设置聊天会话相关表的注释和字符集（仅 MySQL 支持）
+	if err := ensureChatTablesUtf8mb4(db); err != nil {
+		log.Printf("设置聊天表字符集/注释失败: %v", err)
+	}
+
+	if err := setChatSessionMessagesModelNameComment(db); err != nil {
+		log.Printf("设置 chat_session_messages.model_name 列注释失败: %v", err)
+	}
 
 	if err := dropDeprecatedAgentStatusColumn(db); err != nil {
 		log.Printf("删除旧智能体状态字段失败: %v", err)
@@ -98,6 +109,54 @@ func Init(cfg config.DatabaseConfig) *gorm.DB {
 		log.Printf("修复配置provider失败: %v", err)
 	}
 	return db
+}
+
+// ensureChatTablesUtf8mb4 确保聊天相关表使用 utf8mb4 字符集（支持 Emoji 等 4 字节字符），并设置表注释
+func ensureChatTablesUtf8mb4(db *gorm.DB) error {
+	if db.Dialector.Name() != "mysql" {
+		return nil
+	}
+
+	type tableConfig struct {
+		table   string
+		comment string
+	}
+	tables := []tableConfig{
+		{"chat_sessions", "聊天会话记录表"},
+		{"chat_session_messages", "聊天会话消息记录表"},
+	}
+
+	for _, t := range tables {
+		// 转换表及所有字符列为 utf8mb4（修复已有表的字符集问题）
+		sql := fmt.Sprintf("ALTER TABLE %s CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", t.table)
+		if err := db.Exec(sql).Error; err != nil {
+			return fmt.Errorf("转换表 %s 字符集失败: %w", t.table, err)
+		}
+		// 设置表注释
+		sql = fmt.Sprintf("ALTER TABLE %s COMMENT = '%s'", t.table, t.comment)
+		if err := db.Exec(sql).Error; err != nil {
+			return fmt.Errorf("设置表 %s 注释失败: %w", t.table, err)
+		}
+	}
+	log.Println("聊天会话表字符集已确认为 utf8mb4")
+	return nil
+}
+
+// setChatSessionMessagesModelNameComment 设置 chat_session_messages.model_name 列的注释（仅 MySQL）
+func setChatSessionMessagesModelNameComment(db *gorm.DB) error {
+	if db.Dialector.Name() != "mysql" {
+		return nil
+	}
+	// 检查列是否存在
+	hasColumn, err := hasDatabaseColumn(db, "chat_session_messages", "model_name")
+	if err != nil {
+		return err
+	}
+	if !hasColumn {
+		return nil
+	}
+	sql := "ALTER TABLE chat_session_messages MODIFY COLUMN model_name VARCHAR(255) DEFAULT NULL COMMENT 'AI回答时使用的模型名称，用户消息为NULL'"
+	return db.Exec(sql).Error
 }
 
 func dropDeprecatedAgentStatusColumn(db *gorm.DB) error {

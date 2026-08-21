@@ -1,0 +1,52 @@
+CREATE TABLE chat_messages (
+    id              BIGINT          PRIMARY KEY AUTO_INCREMENT  COMMENT '消息ID',
+    session_id      BIGINT          NOT NULL                    COMMENT '所属会话ID',
+    role            VARCHAR(16)     NOT NULL                    COMMENT '消息角色: user / assistant / system',
+    content         TEXT            NOT NULL                    COMMENT '消息文本内容',
+    tokens          INT             DEFAULT 0                   COMMENT '该条消息消耗的 Token 数',
+    duration        BIGINT          DEFAULT 0                   COMMENT '该轮对话耗时（毫秒）',
+    tts_audio_url   VARCHAR(512)    DEFAULT NULL                COMMENT 'TTS 语音文件地址（单条消息级别）',
+    asr_audio_url   VARCHAR(512)    DEFAULT NULL                COMMENT 'ASR 语音文件地址（单条消息级别）',
+    created_at      DATETIME        DEFAULT CURRENT_TIMESTAMP   COMMENT '创建时间',
+
+    INDEX idx_session_id    (session_id),
+    INDEX idx_session_time  (session_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天消息记录表';
+
+CREATE TABLE chat_sessions (
+    id              BIGINT          PRIMARY KEY AUTO_INCREMENT  COMMENT '会话ID',
+    user_id         BIGINT          NOT NULL                    COMMENT '用户ID',
+    chat_type       VARCHAR(16)     NOT NULL                    COMMENT '对话类型: model-模型对话 / agent-智能体对话',
+    target_id       BIGINT          NOT NULL                    COMMENT '模型配置ID(llm_config_id) 或 智能体ID(agent_id)',
+    target_name     VARCHAR(128)    DEFAULT NULL                COMMENT '模型名称 或 智能体名称（冗余，便于列表展示）',
+    title           VARCHAR(256)    DEFAULT NULL                COMMENT '会话标题/话题（可自动生成或用户修改）',
+    summary         VARCHAR(512)    DEFAULT NULL                COMMENT '消息摘要（最后一条消息的前N个字符）',
+    message_count   INT             DEFAULT 0                   COMMENT '消息轮次计数',
+    total_tokens    BIGINT          DEFAULT 0                   COMMENT '累计 Token 消耗',
+    total_duration  BIGINT          DEFAULT 0                   COMMENT '累计耗时（毫秒）',
+    total_bytes     BIGINT          DEFAULT 0                   COMMENT '累计发送字节数',
+    tools_used      JSON            DEFAULT NULL                COMMENT '使用的工具列表 ["tool1","tool2"]',
+    knowledge_ids   JSON            DEFAULT NULL                COMMENT '关联的知识库ID列表 [1,2,3]',
+    tts_audio_url   VARCHAR(512)    DEFAULT NULL                COMMENT 'TTS 输出语音文件地址（智能体对话）',
+    asr_audio_url   VARCHAR(512)    DEFAULT NULL                COMMENT 'ASR 输入语音文件地址（智能体对话）',
+    created_at      DATETIME        DEFAULT CURRENT_TIMESTAMP               COMMENT '创建时间',
+    updated_at      DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
+    INDEX idx_user_id         (user_id),
+    INDEX idx_user_type       (user_id, chat_type),
+    INDEX idx_user_target     (user_id, target_id),
+    INDEX idx_created_at      (user_id, created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天会话记录表'
+
+
+// 聊天历史记录
+const ChatHistoryAPI = {
+    // 会话
+    getChatSessions:      { method: "get",    url: "/api/user/chat-sessions" },
+    createChatSession:    { method: "post",   url: "/api/user/chat-sessions" },
+    updateChatSession:    { method: "put",    url: "/api/user/chat-sessions/:id" },
+    deleteChatSession:    { method: "delete", url: "/api/user/chat-sessions/:id" },
+    getChatSessionDetail: { method: "get",    url: "/api/user/chat-sessions/:id" },
+    // 消息
+    appendChatMessages:   { method: "post",   url: "/api/user/chat-sessions/:id/messages" },
+};
