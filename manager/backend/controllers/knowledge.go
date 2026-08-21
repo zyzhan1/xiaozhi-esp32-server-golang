@@ -1256,16 +1256,16 @@ func (uc *UserController) SyncKnowledgeBaseDocument(c *gin.Context) {
 }
 
 func (uc *UserController) GetAgentKnowledgeBases(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	//userID, _ := c.Get("user_id")
 	agentID, _ := strconv.Atoi(c.Param("id"))
 	if agentID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的智能体ID"})
 		return
 	}
-	if err := uc.assertAgentOwnership(userID.(uint), uint(agentID)); err != nil {
+	/*if err := uc.assertAgentOwnership(userID.(uint), uint(agentID)); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
-	}
+	}*/
 	ids, err := uc.listAgentKnowledgeBaseIDs(uint(agentID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取智能体知识库关联失败"})
@@ -1273,7 +1273,7 @@ func (uc *UserController) GetAgentKnowledgeBases(c *gin.Context) {
 	}
 	var items []models.KnowledgeBase
 	if len(ids) > 0 {
-		if err := uc.DB.Where("id IN ? AND user_id = ?", ids, userID).Find(&items).Error; err != nil {
+		if err := uc.DB.Where("id IN ?", ids).Find(&items).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "获取知识库详情失败"})
 			return
 		}

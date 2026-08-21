@@ -233,6 +233,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 
 				// 聊天会话（用户端模型/智能体对话）
 				user.GET("/chat-sessions", chatSessionController.GetChatSessions)
+				user.GET("/chat-sessions/usage-statistics", chatSessionController.GetUsageStatistics)
 				user.POST("/chat-sessions", chatSessionController.CreateChatSession)
 				user.PUT("/chat-sessions/:id", chatSessionController.UpdateChatSession)
 				user.DELETE("/chat-sessions/:id", chatSessionController.DeleteChatSession)

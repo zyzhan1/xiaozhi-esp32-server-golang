@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 	"xiaozhi/manager/backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -448,6 +449,172 @@ func (c *ChatSessionController) AppendChatMessages(ctx *gin.Context) {
 		"messages": createdMessages,
 		"count":    len(createdMessages),
 	})
+}
+
+// ============================================================
+// 用量统计
+// ============================================================
+
+// modelUsageRow 数据库聚合查询行
+type modelUsageRow struct {
+	ModelName     string `json:"model_name"`
+	TotalTokens   int64  `json:"total_tokens"`
+	TotalDuration int64  `json:"total_duration"`
+	TotalRounds   int64  `json:"total_rounds"`
+}
+
+// dailyTrendRow 按日聚合查询行
+type dailyTrendRow struct {
+	Date      string `json:"date"`
+	ModelName string `json:"model_name"`
+	Tokens    int64  `json:"tokens"`
+	Rounds    int64  `json:"rounds"`
+}
+
+// UsageStatisticsResponse 用量统计响应
+type UsageStatisticsResponse struct {
+	TotalUsage   TotalUsageSummary  `json:"total_usage"`
+	ModelDetails []ModelUsageDetail `json:"model_details"`
+	DailyTrend   []DailyTrendItem   `json:"daily_trend"`
+}
+
+// TotalUsageSummary 汇总统计
+type TotalUsageSummary struct {
+	TotalTokens   int64 `json:"total_tokens"`
+	TotalDuration int64 `json:"total_duration"`
+	TotalRounds   int64 `json:"total_rounds"`
+}
+
+// ModelUsageDetail 单模型用量明细
+type ModelUsageDetail struct {
+	ModelName           string `json:"model_name"`
+	TotalTokens         int64  `json:"total_tokens"`
+	TotalDuration       int64  `json:"total_duration"`
+	TotalRounds         int64  `json:"total_rounds"`
+	AvgTokensPerRound   int64  `json:"avg_tokens_per_round"`
+	AvgDurationPerRound int64  `json:"avg_duration_per_round"`
+}
+
+// DailyTrendItem 每日趋势数据点（按模型拆分）
+type DailyTrendItem struct {
+	Date      string `json:"date"`       // 格式 "MM-DD"
+	ModelName string `json:"model_name"` // 模型名称
+	Tokens    int64  `json:"tokens"`
+	Rounds    int64  `json:"rounds"`
+}
+
+// assistantBaseQuery 构建当前用户 assistant 消息的基础查询（含时间筛选）
+func (c *ChatSessionController) assistantBaseQuery(ctx *gin.Context, userID uint64) *gorm.DB {
+	query := c.DB.Model(&models.ChatSessionMessage{}).
+		Where("model_name IS NOT NULL AND model_name != ''").
+		Where("session_id IN (?)",
+			c.DB.Model(&models.ChatSession{}).
+				Select("id").
+				Where("user_id = ?", userID),
+		)
+
+	if v := ctx.Query("start_time"); v != "" {
+		if t, err := time.Parse(time.RFC3339, v); err == nil {
+			query = query.Where("created_at >= ?", t)
+		}
+	}
+	if v := ctx.Query("end_time"); v != "" {
+		if t, err := time.Parse(time.RFC3339, v); err == nil {
+			query = query.Where("created_at <= ?", t)
+		}
+	}
+	return query
+}
+
+// GetUsageStatistics 获取模型用量统计（按 model_name 分组聚合 + 每日趋势）
+func (c *ChatSessionController) GetUsageStatistics(ctx *gin.Context) {
+	userID := c.getUserID(ctx)
+	if userID == 0 {
+		return
+	}
+
+	// ---- 1. 按 model_name 分组聚合 ----
+	var rows []modelUsageRow
+	if err := c.assistantBaseQuery(ctx, userID).
+		Select("COALESCE(model_name, '(unknown)') as model_name, " +
+			"COALESCE(SUM(tokens), 0) as total_tokens, " +
+			"COALESCE(SUM(duration), 0) as total_duration, " +
+			"COUNT(*) as total_rounds").
+		Group("model_name").
+		Order("total_tokens DESC").
+		Find(&rows).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "查询统计失败: " + err.Error()})
+		return
+	}
+	if rows == nil {
+		rows = []modelUsageRow{}
+	}
+
+	// 计算汇总
+	var totalTokens, totalDuration, totalRounds int64
+	modelDetails := make([]ModelUsageDetail, 0, len(rows))
+	for _, r := range rows {
+		totalTokens += r.TotalTokens
+		totalDuration += r.TotalDuration
+		totalRounds += r.TotalRounds
+
+		detail := ModelUsageDetail{
+			ModelName:           r.ModelName,
+			TotalTokens:         r.TotalTokens,
+			TotalDuration:       r.TotalDuration,
+			TotalRounds:         r.TotalRounds,
+			AvgTokensPerRound:   0,
+			AvgDurationPerRound: 0,
+		}
+		if r.TotalRounds > 0 {
+			detail.AvgTokensPerRound = r.TotalTokens / r.TotalRounds
+			detail.AvgDurationPerRound = r.TotalDuration / r.TotalRounds
+		}
+		modelDetails = append(modelDetails, detail)
+	}
+
+	// ---- 2. 按日聚合趋势 ----
+	// 根据数据库类型选择日期格式化函数
+	dateExpr := "DATE_FORMAT(created_at, '%m-%d')" // MySQL
+	if c.DB.Dialector.Name() == "sqlite" {
+		dateExpr = "strftime('%m-%d', created_at)"
+	}
+
+	var trendRows []dailyTrendRow
+	if err := c.assistantBaseQuery(ctx, userID).
+		Select(dateExpr + " as date, " +
+			"COALESCE(model_name, '(unknown)') as model_name, " +
+			"COALESCE(SUM(tokens), 0) as tokens, " +
+			"COUNT(*) as rounds").
+		Group("date, model_name").
+		Order("date ASC, tokens DESC").
+		Find(&trendRows).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "查询趋势数据失败: " + err.Error()})
+		return
+	}
+
+	dailyTrend := make([]DailyTrendItem, 0, len(trendRows))
+	for _, tr := range trendRows {
+		dailyTrend = append(dailyTrend, DailyTrendItem{
+			Date:      tr.Date,
+			ModelName: tr.ModelName,
+			Tokens:    tr.Tokens,
+			Rounds:    tr.Rounds,
+		})
+	}
+
+	// ---- 3. 组装响应 ----
+	resp := UsageStatisticsResponse{
+		TotalUsage: TotalUsageSummary{
+			TotalTokens:   totalTokens,
+			TotalDuration: totalDuration,
+			TotalRounds:   totalRounds,
+		},
+		ModelDetails: modelDetails,
+		DailyTrend:   dailyTrend,
+	}
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 // ============================================================
