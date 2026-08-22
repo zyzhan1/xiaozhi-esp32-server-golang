@@ -78,6 +78,8 @@ func Init(cfg config.DatabaseConfig) *gorm.DB {
 		&models.UserLLMConfig{},
 		&models.ChatSession{},
 		&models.ChatSessionMessage{},
+		&models.AgentChatSession{},
+		&models.AgentChatMessage{},
 	)
 	if err != nil {
 		log.Printf("数据库表结构迁移失败: %v", err)
@@ -124,6 +126,8 @@ func ensureChatTablesUtf8mb4(db *gorm.DB) error {
 	tables := []tableConfig{
 		{"chat_sessions", "聊天会话记录表"},
 		{"chat_session_messages", "聊天会话消息记录表"},
+		{"agent_chat_sessions", "智能体聊天会话主表"},
+		{"agent_chat_messages", "智能体聊天消息明细表"},
 	}
 
 	for _, t := range tables {

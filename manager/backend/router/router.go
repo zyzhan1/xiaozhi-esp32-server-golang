@@ -61,6 +61,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		MaxFileSize:   maxFileSize,
 	}
 	chatSessionController := &controllers.ChatSessionController{DB: db}
+	agentChatSessionController := &controllers.AgentChatSessionController{DB: db}
 
 	// API路由组
 	api := r.Group("/api")
@@ -240,6 +241,14 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				user.GET("/chat-sessions/:id", chatSessionController.GetChatSessionDetail)
 				user.GET("/chat-sessions/:id/messages", chatSessionController.GetChatSessionMessages)
 				user.POST("/chat-sessions/:id/messages", chatSessionController.AppendChatMessages)
+
+				// 智能体聊天会话
+				user.POST("/agent-chat-sessions", agentChatSessionController.CreateAgentChatSession)
+				user.GET("/agent-chat-sessions", agentChatSessionController.GetAgentChatSessions)
+				user.PUT("/agent-chat-sessions/:id", agentChatSessionController.UpdateAgentChatSession)
+				user.DELETE("/agent-chat-sessions/:id", agentChatSessionController.DeleteAgentChatSession)
+				user.GET("/agent-chat-sessions/:id/messages", agentChatSessionController.GetAgentChatSessionDetail)
+				user.POST("/agent-chat-sessions/:id/messages", agentChatSessionController.AppendAgentChatMessages)
 			}
 
 			// 外部OpenAPI路由（支持JWT或API Token）

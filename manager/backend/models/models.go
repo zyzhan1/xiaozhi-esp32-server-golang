@@ -451,3 +451,189 @@ type ChatSessionMessage struct {
 func (ChatSessionMessage) TableName() string {
 	return "chat_session_messages"
 }
+
+// ============================================================
+// 智能体聊天会话模型（独立于模型聊天记录，因附加上下文维度较多）
+// 对应 SQL: agent_chat_sessions
+// ============================================================
+
+// AgentChatSession 智能体聊天会话模型
+type AgentChatSession struct {
+	ID        uint64  `json:"id" gorm:"primarykey;comment:会话主键ID"`
+	UserID    uint64  `json:"user_id" gorm:"not null;index:idx_user_id;comment:所属用户ID"`
+	AgentID   uint64  `json:"agent_id" gorm:"not null;index:idx_agent_id;comment:所属智能体ID"`
+	AgentName string  `json:"agent_name" gorm:"type:varchar(255);not null;default:'';comment:智能体名称（冗余快照）"`
+	ModelName string  `json:"model_name" gorm:"type:varchar(255);not null;default:'';comment:底层大模型名称"`
+	ModelID   *uint64 `json:"model_id" gorm:"default:NULL;comment:绑定的LLM配置ID"`
+	Title     string  `json:"title" gorm:"type:varchar(500);not null;default:'新对话';comment:会话标题"`
+	Summary   *string `json:"summary" gorm:"type:varchar(1000);default:NULL;comment:会话摘要"`
+
+	// 统计字段
+	TotalRounds   uint32 `json:"total_rounds" gorm:"not null;default:0;comment:总对话轮数"`
+	TotalTokens   uint64 `json:"total_tokens" gorm:"not null;default:0;comment:累计Token消耗"`
+	TotalDuration uint64 `json:"total_duration" gorm:"not null;default:0;comment:累计耗时（毫秒）"`
+
+	// 附加上下文（JSON 字段，DB 层存储为 string）
+	ToolsJSON       *string `json:"tools,omitempty" gorm:"type:json;column:tools;comment:会话期间调用过的工具列表"`
+	KnowledgeJSON   *string `json:"knowledge_bases,omitempty" gorm:"type:json;column:knowledge_bases;comment:检索过的知识库列表"`
+	TTSConfigJSON   *string `json:"tts_config,omitempty" gorm:"type:json;column:tts_config;comment:语音合成配置快照"`
+	MCPServicesJSON *string `json:"mcp_services,omitempty" gorm:"type:json;column:mcp_services;comment:调用过的MCP服务列表"`
+
+	CreatedAt time.Time `json:"created_at" gorm:"index:idx_user_created;comment:会话创建时间"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"comment:最后更新时间"`
+
+	// 非数据库字段：反序列化后的 JSON 数据
+	Tools          []interface{} `json:"tools_list,omitempty" gorm:"-"`
+	KnowledgeBases []interface{} `json:"knowledge_bases_list,omitempty" gorm:"-"`
+	TTSConfig      interface{}   `json:"tts_config_obj,omitempty" gorm:"-"`
+	MCPServices    []interface{} `json:"mcp_services_list,omitempty" gorm:"-"`
+}
+
+// TableName 指定表名
+func (AgentChatSession) TableName() string {
+	return "agent_chat_sessions"
+}
+
+// BeforeSave GORM hook - 序列化 JSON 字段
+func (s *AgentChatSession) BeforeSave(tx *gorm.DB) error {
+	if s.Tools != nil {
+		data, err := json.Marshal(s.Tools)
+		if err != nil {
+			return err
+		}
+		str := string(data)
+		s.ToolsJSON = &str
+	}
+	if s.KnowledgeBases != nil {
+		data, err := json.Marshal(s.KnowledgeBases)
+		if err != nil {
+			return err
+		}
+		str := string(data)
+		s.KnowledgeJSON = &str
+	}
+	if s.TTSConfig != nil {
+		data, err := json.Marshal(s.TTSConfig)
+		if err != nil {
+			return err
+		}
+		str := string(data)
+		s.TTSConfigJSON = &str
+	}
+	if s.MCPServices != nil {
+		data, err := json.Marshal(s.MCPServices)
+		if err != nil {
+			return err
+		}
+		str := string(data)
+		s.MCPServicesJSON = &str
+	}
+	return nil
+}
+
+// AfterFind GORM hook - 反序列化 JSON 字段
+func (s *AgentChatSession) AfterFind(tx *gorm.DB) error {
+	if s.ToolsJSON != nil && *s.ToolsJSON != "" {
+		_ = json.Unmarshal([]byte(*s.ToolsJSON), &s.Tools)
+	}
+	if s.KnowledgeJSON != nil && *s.KnowledgeJSON != "" {
+		_ = json.Unmarshal([]byte(*s.KnowledgeJSON), &s.KnowledgeBases)
+	}
+	if s.TTSConfigJSON != nil && *s.TTSConfigJSON != "" {
+		_ = json.Unmarshal([]byte(*s.TTSConfigJSON), &s.TTSConfig)
+	}
+	if s.MCPServicesJSON != nil && *s.MCPServicesJSON != "" {
+		_ = json.Unmarshal([]byte(*s.MCPServicesJSON), &s.MCPServices)
+	}
+	return nil
+}
+
+// ============================================================
+// 智能体聊天消息明细模型
+// 对应 SQL: agent_chat_messages
+// ============================================================
+
+// AgentChatMessage 智能体聊天消息模型
+type AgentChatMessage struct {
+	ID        uint64  `json:"id" gorm:"primarykey;comment:消息主键ID"`
+	SessionID uint64  `json:"session_id" gorm:"not null;index:idx_session_id;comment:所属会话ID"`
+	UserID    uint64  `json:"user_id" gorm:"not null;index:idx_user_id;comment:所属用户ID"`
+	Role      string  `json:"role" gorm:"type:varchar(32);not null;comment:消息角色: user / assistant / system / tool"`
+	Content   string  `json:"content" gorm:"type:longtext;not null;comment:消息文本内容"`
+	ModelName *string `json:"model_name" gorm:"type:varchar(255);default:NULL;comment:AI使用的模型名称（仅assistant）"`
+	Duration  *uint64 `json:"duration" gorm:"default:NULL;comment:本轮AI处理耗时（毫秒）"`
+	Tokens    *uint32 `json:"tokens" gorm:"default:NULL;comment:本轮Token消耗"`
+
+	// 附加上下文（JSON 字段，DB 层存储为 string）
+	ToolsJSON       *string `json:"tools,omitempty" gorm:"type:json;column:tools;comment:本轮调用的工具列表"`
+	KnowledgeJSON   *string `json:"knowledge_bases,omitempty" gorm:"type:json;column:knowledge_bases;comment:本轮检索的知识库列表"`
+	TTSConfigJSON   *string `json:"tts_config,omitempty" gorm:"type:json;column:tts_config;comment:本轮语音合成配置"`
+	MCPServicesJSON *string `json:"mcp_services,omitempty" gorm:"type:json;column:mcp_services;comment:本轮调用的MCP服务"`
+
+	CreatedAt time.Time `json:"created_at" gorm:"index:idx_session_created;comment:消息创建时间"`
+
+	// 非数据库字段：反序列化后的 JSON 数据
+	Tools          []interface{} `json:"tools_list,omitempty" gorm:"-"`
+	KnowledgeBases []interface{} `json:"knowledge_bases_list,omitempty" gorm:"-"`
+	TTSConfig      interface{}   `json:"tts_config_obj,omitempty" gorm:"-"`
+	MCPServices    []interface{} `json:"mcp_services_list,omitempty" gorm:"-"`
+}
+
+// TableName 指定表名
+func (AgentChatMessage) TableName() string {
+	return "agent_chat_messages"
+}
+
+// BeforeSave GORM hook - 序列化 JSON 字段
+func (m *AgentChatMessage) BeforeSave(tx *gorm.DB) error {
+	if m.Tools != nil {
+		data, err := json.Marshal(m.Tools)
+		if err != nil {
+			return err
+		}
+		str := string(data)
+		m.ToolsJSON = &str
+	}
+	if m.KnowledgeBases != nil {
+		data, err := json.Marshal(m.KnowledgeBases)
+		if err != nil {
+			return err
+		}
+		str := string(data)
+		m.KnowledgeJSON = &str
+	}
+	if m.TTSConfig != nil {
+		data, err := json.Marshal(m.TTSConfig)
+		if err != nil {
+			return err
+		}
+		str := string(data)
+		m.TTSConfigJSON = &str
+	}
+	if m.MCPServices != nil {
+		data, err := json.Marshal(m.MCPServices)
+		if err != nil {
+			return err
+		}
+		str := string(data)
+		m.MCPServicesJSON = &str
+	}
+	return nil
+}
+
+// AfterFind GORM hook - 反序列化 JSON 字段
+func (m *AgentChatMessage) AfterFind(tx *gorm.DB) error {
+	if m.ToolsJSON != nil && *m.ToolsJSON != "" {
+		_ = json.Unmarshal([]byte(*m.ToolsJSON), &m.Tools)
+	}
+	if m.KnowledgeJSON != nil && *m.KnowledgeJSON != "" {
+		_ = json.Unmarshal([]byte(*m.KnowledgeJSON), &m.KnowledgeBases)
+	}
+	if m.TTSConfigJSON != nil && *m.TTSConfigJSON != "" {
+		_ = json.Unmarshal([]byte(*m.TTSConfigJSON), &m.TTSConfig)
+	}
+	if m.MCPServicesJSON != nil && *m.MCPServicesJSON != "" {
+		_ = json.Unmarshal([]byte(*m.MCPServicesJSON), &m.MCPServices)
+	}
+	return nil
+}
